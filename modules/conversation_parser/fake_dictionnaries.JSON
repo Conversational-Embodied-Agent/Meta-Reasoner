@@ -1,0 +1,16 @@
+{
+    "ID1": {
+        "name": "Alice",
+        "role": "Speaker",
+        "role_conf": "97%",
+        "spatial_loc": "right",
+        "spatial_conf": "100%"
+    },
+    "ID2": {
+        "name": "Bob",
+        "role": "Addressee",
+        "role_conf": "56%",
+        "spatial_loc": "left",
+        "spatial_conf": "80%"
+    }
+}
