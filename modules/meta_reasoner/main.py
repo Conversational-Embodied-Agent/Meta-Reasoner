@@ -2,6 +2,8 @@
 import yarp
 import sys
 
+from llm_agent import LLMAgent
+
 
 def log_message(prefix, msg):
     """Generic logging function used for different types of messages."""
@@ -21,11 +23,14 @@ def log_message(prefix, msg):
 class MetaReasoner(yarp.RFModule):
     """
     Description:
-        Class to recognize yoga pose from iCub cameras
+
     """
 
     def __init__(self):
         yarp.RFModule.__init__(self)
+
+        self.temperature = 0.7
+        self.max_tokens = 128
 
     def configure(self, rf):
         # Configure module parameters #
@@ -51,7 +56,10 @@ class MetaReasoner(yarp.RFModule):
 
 
         ########## LLM MODEL ##########
-        #todo
+        self.llm_agent = LLMAgent(
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+        )
 
         log_message("YARP-INFO", "Initialization complete. Yeah!\n")
         return True
@@ -70,6 +78,13 @@ class MetaReasoner(yarp.RFModule):
 
     def updateModule(self):
         print("HELLO! WORK IN PROGRESS HERE")
+
+        #call function to read parser
+        #call function to update participants
+
+        #call llm to reason about addressee
+
+        #call llm to reason about the answer if robot is the addressee
 
 
     def interruptModule(self):
