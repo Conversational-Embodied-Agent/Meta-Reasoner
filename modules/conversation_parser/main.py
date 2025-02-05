@@ -19,6 +19,7 @@ class ConversationParser(yarp.RFModule):
 
         self.spatial_memory_input_port = yarp.BufferedPortBottle()
         self.speech_recognition_input_port = yarp.BufferedPortBottle()
+        self.output_port = yarp.Port()
         self.handle_port = yarp.Port()
         self.attach(self.handle_port)
 
@@ -30,11 +31,12 @@ class ConversationParser(yarp.RFModule):
         self.handle_port.open('/conversationParser')
         self.spatial_memory_input_port.open("/conversationParser/dict:i")
         self.speech_recognition_input_port.open("/conversationParser/utterance:i")
+        self.output_port.open('/conversationParser/record:o')
+
 
         #todo: add to xml file
         yarp.Network.connect('/spatial_memory/dict:o', '/conversationParser/dict:i')
         yarp.Network.connect('/SpeechToText/speech_recognition:o', '/conversationParser/utterance:i')
-
 
         print("Configuration Done")
         return True
@@ -54,7 +56,7 @@ class ConversationParser(yarp.RFModule):
 
     def respond(self, command, reply):
         reply.clear()
-        if command.toString() == "converstaion_end":
+        if command.toString() == "conversation_end":
             self.interaction_end = True
             reply.addString(f"received command {command.toString()}")
         return True
@@ -67,6 +69,7 @@ class ConversationParser(yarp.RFModule):
         if spatial_memory_dict is not None:
             #print to check if it is reading correctly
             logging.info(f"Spatial Memory: {spatial_memory_dict}")
+            # create a structured record of the conversation dynamic and send to meta reasoner
             self.parse_info(spatial_memory_dict)
 
         if self.interaction_end:
@@ -128,17 +131,14 @@ class ConversationParser(yarp.RFModule):
         for id_key, attributes in input_data.items():
             if attributes['role'] == 'Speaker':
                 speaker = attributes['name']
-                utterance = self.read_utterance() or "No utterance received"
+                utterance = attributes['utterance']
+                #utterance = self.read_utterance() or "No utterance received"
 
-            elif attributes['role'] == 'Addressee' and addressee is None:
+            elif attributes['role'] == 'Addressee':
                 addressee = attributes['name']
 
-            # If both speaker and addressee are found, we can exit early
-            if speaker and addressee:
-                break
-
         # Only create a record if a speaker is found
-        if speaker:
+        if speaker and addressee:
             record = {
                 "Timestamp": timestamp,
                 "Speaker": speaker,
@@ -146,7 +146,17 @@ class ConversationParser(yarp.RFModule):
                 "Addressee": addressee or "Unknown"
             }
             self.data_records.append(record)
+            self.send_record_to_metareasoner(record)
+
         return
+
+    def send_record_to_metareasoner(self, record):
+        record_bottle = yarp.Bottle()
+        record_bottle.clear()
+        record_bottle.addString(str(record))
+        self.output_port.write(record_bottle)
+
+        return True
 
 
     def save_log_file(self):

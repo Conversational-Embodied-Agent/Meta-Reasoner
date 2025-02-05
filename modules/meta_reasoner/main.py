@@ -1,128 +1,83 @@
-# some imports
+import os
+from langchain_openai import AzureChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
 import yarp
-import sys
+from dotenv import load_dotenv
 
-from llm_agent import LLMAgent
+load_dotenv()
 
-
-def log_message(prefix, msg):
-    """Generic logging function used for different types of messages."""
-    colors = {
-        "ICUB": "\033[91m",
-        "YARP-INFO": "\033[92m",
-        "DEBUG": "\033[96m",
-        "WARNING": "\033[93m",
-        "ERROR": "\033[91m"
-    }
-    reset_color = "\033[00m"
-    color = colors.get(prefix.upper(), "")
-    print(f"{color}{prefix.upper()}:{msg}{reset_color}")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY")
 
 
-
-class MetaReasoner(yarp.RFModule):
-    """
-    Description:
-
-    """
+class LLMAgent(yarp.RFModule):
 
     def __init__(self):
-        yarp.RFModule.__init__(self)
+        """ This module is a llm-powered reasoner to assess addressee identity and conversation dynamics."""
+        super(LLMAgent, self).__init__()
+        self.llm_chain = None
 
-        self.temperature = 0.7
-        self.max_tokens = 128
+        self.input_port = yarp.BufferedPortBottle()
+        self.output_port = yarp.Port()
+        self.rpc_output_port = yarp.RpcClient()
 
-    def configure(self, rf):
-        # Configure module parameters #
-        module_name = rf.check("name",
-                               yarp.Value("metaReasoner"),
-                               "module name (string)").asString()
-
-        language = rf.check("language",
-                            yarp.Value("english"),
-                            "language of the prompts (english/italian)").asString()
-
-        # This looks for the prompts.ini in the context of the module
-        prompts_path = rf.check('prompts_path',
-                                yarp.Value(rf.findFileByName("prompts.ini")),
-                                'path containing the ini file with the prompts.').asString()
-        log_message("YARP-INFO", f"Reading prompts from context: {prompts_path}")
-
-        # This looks for the configuration file
-        conf_path = rf.check('conf_path',
-                             yarp.Value(rf.findFileByName("metaReasoner.ini")),
-                             'path containing the ini file with the configurations.').asString()
-        log_message("YARP-INFO", f"Reading conf from context: {conf_path}")
-
-
-        ########## LLM MODEL ##########
-        self.llm_agent = LLMAgent(
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
+        self.llm = AzureChatOpenAI(
+            openai_api_version="2024-10-21",
+            deployment_name="contact-MultipartyConversation_gpt4omini",
+            temperature=0.5,
+            max_tokens=128,
         )
 
-        log_message("YARP-INFO", "Initialization complete. Yeah!\n")
-        return True
+    def configure(self, rf):
+
+        # Open ports
+        self.input_port.open("/llm_reasoner/input:i")
+        self.output_port.open("/llm_reasoner/output:o")
+        self.rpc_output_port.open("/llm_reasoner/rpc")
+
+        # Make connections
+        # connect ports
+        #yarp.Network.connect()
+
+        # Initialize prompt
+        self.initialize_prompt()
+
+        #For the prompt
+        self.system_prompt= ("You are a robot assistant taking part in a multi-party conversation. The participants of the conversations are {participants}."
+                             "Based on the conversation_history and the current sentence decide who is the addressee of the current sentence."
+                             "Converstaion_history: {parser}"
+                             "Current sentence: {input}")
+        self.participants = [] #decide where to update the number of participants
+        self.parser = []
+
+        self.setup_llm()
+        self.setup_prompt_template()
 
 
-    def respond(self, command, reply):
-        return
 
 
-    def getPeriod(self):
+    def setup_prompt_template(self):
         """
-           Module refresh rate.
-           Returns : The period of the module in seconds.
+        setup the llm agent parameters
         """
-        return 0.05
-
-    def updateModule(self):
-        print("HELLO! WORK IN PROGRESS HERE")
-
-        #call function to read parser
-        #call function to update participants
-
-        #call llm to reason about addressee
-
-        #call llm to reason about the answer if robot is the addressee
+        prompt_template_addresee = ChatPromptTemplate.from_messages([
+            ("system", self.system_prompt),
+            #("placeholder", "{chat_history}"),
+            ("human", "{input}") #input is the last line of the parser
+        ]).partial(participants=self.participants, parser=self.parser)
 
 
-    def interruptModule(self):
-        log_message("YARP-INFO", "stopping the module")
-        return True
+        return prompt_template_addresee
 
-    def close(self):
-        log_message("YARP-INFO", "Closing ports")
-        return True
+    def decide_addressee(self, user_input):
 
+        #function to extrapolate parser
+        #function to extrapolate user_input
 
+        main_prompt = self.setup_prompt_template()
+        chat_chain = main_prompt | self.llm
 
-if __name__ == '__main__':
-
-    # Initialise YARP
-    if not yarp.Network.checkNetwork():
-        print("Unable to find a yarp server, exiting...")
-        sys.exit(1)
-
-    yarp.Network.init()
-    metaReasonerModule = MetaReasoner()
-
-    rf = yarp.ResourceFinder()
-    rf.setVerbose(True)
-    rf.setDefaultContext('metaReasoner')
-    rf.setDefaultConfigFile('metaReasoner.ini')
-
-    if rf.configure(sys.argv):
-        metaReasonerModule.runModule(rf)
-
-    sys.exit()
-
-
-
-
-
-
-
-
-
+        answer = chat_chain.invoke({"input": user_input})
+        print(answer)
 

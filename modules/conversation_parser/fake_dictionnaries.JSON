@@ -4,7 +4,8 @@
         "role": "Speaker",
         "role_conf": "97%",
         "spatial_loc": "right",
-        "spatial_conf": "100%"
+        "spatial_conf": "100%",
+        "utterance": "Hello Bob, how are you? Did you see this nice robot?"
     },
     "ID2": {
         "name": "Bob",
