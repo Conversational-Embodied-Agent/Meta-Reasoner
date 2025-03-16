@@ -3,7 +3,7 @@
         "name": "Alice",
         "role": "Speaker",
         "role_conf": "97%",
-        "spatial_loc": "right",
+        "spatial_loc": "(x,y)",
         "spatial_conf": "100%",
         "utterance": "Hello Bob, how are you? Did you see this nice robot?"
     },
@@ -11,7 +11,7 @@
         "name": "Bob",
         "role": "Addressee",
         "role_conf": "56%",
-        "spatial_loc": "left",
+        "spatial_loc": "(x,y)",
         "spatial_conf": "80%"
     }
 }
