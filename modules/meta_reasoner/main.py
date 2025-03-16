@@ -112,7 +112,7 @@ class MetaReasoner(yarp.RFModule):
 
             if masked_record is not None:
 
-                print(f"\033[91mINVOKING LLM META-REASONER\033[0m")
+                print("\033[91mINVOKING LLM META-REASONER\033[0m")
 
                 conversation_history = [] #"\n".join(self.updated_record_history) if self.updated_record_history else "No previous messages."
 
