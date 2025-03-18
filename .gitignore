@@ -2,3 +2,4 @@ build/
 .idea/
 parse_log/
 modules/meta_reasoner/.env
+modules/spatial_memory/__pycache__/radar.cpython-313.pyc

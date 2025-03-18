@@ -79,7 +79,7 @@ class MetaReasoner(yarp.RFModule):
         """ read from the face_id module to get the participants of the conversation."""
         #TODO: add here the read function
         #TODO: in the future read from the spacial memory
-        self.participant = ['Alice', 'Bob', 'Mary', 'John']
+        self.participant = ['Alice', 'Bob', 'Mary', 'John', 'Robot']
 
 
     def interruptModule(self):

@@ -6,6 +6,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
 import cv2
+from radar import RadarPlotApp
+
+def print_error(msg):
+    print("\033[91m[ERROR]:", msg, "\033[0m")
+
+def print_warning(msg):
+    print("\033[93m[[WARNING]", msg, "\033[0m")
 
 
 class SpatialMemory(yarp.RFModule):
@@ -34,7 +41,20 @@ class SpatialMemory(yarp.RFModule):
         #yarp.Network.connect("/spatialmemory/input:i","/faceID/annotations:o")
 
         # Initialize prompt
-        self.setup_gaze_controller()
+        #self.setup_gaze_controller()
+
+        # initialize the radar plot visualization
+        self.radarplot = RadarPlotApp()
+            # Avvia il server in background
+        self.radarplot.start_server(open_browser=True)
+
+        print("Configuration Done")
+        # test the radar plot
+        for i in range(1000):
+            yarp.delay(0.1)
+
+            # face_ang, neck_ang, area_ang
+            self.radarplot.update_data(90, 0, 0.5)
 
         print("Configuration Done")
         return True
@@ -49,7 +69,7 @@ class SpatialMemory(yarp.RFModule):
         self.clientGaze = yarp.PolyDriver()
         self.clientGaze.open(optGaze)
         if not self.clientGaze.isValid():
-            print("Failed to connect to iKinGaze")
+            print_error("Gaze controller client device is not available. Check if the gazecontrollerclient is running.")
             exit()
 
         self.GazeControl = self.clientGaze.viewIGazeControl()
@@ -63,9 +83,13 @@ class SpatialMemory(yarp.RFModule):
 
 
     def close(self):
-        self.input_port.close()
-        self.output_port.close()
-        self.rpc_output_port.close()
+        try:
+            self.input_port.close()
+            self.output_port.close()
+            self.rpc_output_port.close()
+        finally:
+            # Assicurati di fermare il server quando hai finito
+            self.radarplot.stop_server()
         return True
 
 
@@ -73,31 +97,32 @@ class SpatialMemory(yarp.RFModule):
         return True
 
     def getPeriod(self):
-        return 1.0
+        return 0.2
 
 
     def updateModule(self):
-        #self.write_spatial_memory()
+
         if self.input_port.getInputCount():
             faces = self.input_port.read(shouldWait=True)
             if faces is not None:
-                faces = faces.get(0)
-                box = faces.find("box")
-                box = box.asList()
-                # get centroid of the face
-                top_x, top_y, bot_x, bot_y = box.get(0).asInt16(), box.get(1).asInt16(), box.get(2).asInt16(), box.get(3).asInt16()
-                x = (top_x + bot_x) / 2
-                y = (top_y + bot_y) / 2
-                
-                print(f"x: {x}, y: {y}")
-                area = (bot_x - top_x) * (bot_y - top_y)
-                print(f"area: {area}")
+                for person in range(faces.size()):
+                    faces = faces.get(person)
+                    box = faces.find("box")
+                    box = box.asList()
+                    # get centroid of the face
+                    top_x, top_y, bot_x, bot_y = box.get(0).asInt16(), box.get(1).asInt16(), box.get(2).asInt16(), box.get(3).asInt16()
+                    x = (top_x + bot_x) / 2
+                    y = (top_y + bot_y) / 2
+                    
+                    print(f"x: {x}, y: {y}")
+                    area = (bot_x - top_x) * (bot_y - top_y)
+                    print(f"area: {area}")
 
-                #area percentage
-                area_percentage = area / (320 * 240)
-                print(f"area percentage: {area_percentage}")
+                    #area percentage
+                    area_percentage = area / (320 * 240)
+                    print(f"area percentage: {area_percentage}")
 
-                self.write_spatial_memory(x,y, area)
+                    self.write_spatial_memory(x,y, area)
 
                 print(faces.toString())
                 
@@ -126,71 +151,8 @@ class SpatialMemory(yarp.RFModule):
 
             #print("3D point in the camera frame: ", frame_pos.toString())
 
-            self.radarplot(angles[0], area)
+            #self.radarplot(angles[0], area)
         return True
-
-        
-    def radarplot(self, angle, area):
-
-        angle = [angle]
-        r = [area]
-
-        # Coordinate polari
-        theta = angle 
-        #r = np.random.rand(1)
-
-        # Emoji delle faccine
-        emojis = ["😀", "😃", "😄", "😁", "😆", "😊"]
-
-        self.fig = go.Figure()
-
-        # Creazione del plot polare
-        if self.var is None:
-            # put the emoji of a robot in the center
-            self.fig.add_trace(go.Scatterpolar(
-            r=[0],
-            theta=[0],
-            mode='text',
-            text=["🤖"],
-            textfont_size=80,
-            name="🤖"
-            ))
-            self.var = 1
-        
-
-        # disable the radial grid
-        self.fig.update_polars(radialaxis_showgrid=False)
-        # set the 0 to be on top and flip the direction
-        self.fig.update_layout(polar_angularaxis_direction="clockwise", polar_angularaxis_rotation=90)
-
-        # disable the labels on the radial axis
-        self.fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-            showticklabels=False,
-            ticks=''
-            )
-        )
-        )
-
-        # Aggiunta delle emoji al posto dei punti
-        for i in range(len(r)):
-            self.fig.add_trace(go.Scatterpolar(
-            r=[r[i]],
-            theta=[theta[i]],
-            mode='text',
-            text=[emojis[i]],
-            textfont_size=60,
-            name=emojis[i]
-            ))
-
-        # Aggiorna il grafico senza aprire una nuova finestra
-        self.fig.update_traces()
-
-        # convert image to opencv format
-        img = cv2.cvtColor(np.array(self.fig), cv2.COLOR_RGB2BGR)
-        cv2.imshow("Radar Plot", img)
-        cv2.waitKey(0)
 
 
 if __name__ == "__main__":
