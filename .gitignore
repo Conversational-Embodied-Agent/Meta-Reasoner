@@ -2,4 +2,3 @@ build/
 .idea/
 conversations_log/
 modules/meta_reasoner/.env
-

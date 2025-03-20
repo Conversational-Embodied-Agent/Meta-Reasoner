@@ -135,7 +135,7 @@ class MetaReasoner(yarp.RFModule):
         cmd_bottle.addString("type")
         cmd_bottle.addString("person")
         self.rpc_spatial_memory.write(cmd_bottle, response)
-        if response:
+        if response != "nack":
             print(f"\033[94m[DEBUG] Sending cmd to spatial memory: {cmd_bottle.toString()}. Received response: {response.toString()}\033[00m")
             self.participants = [response.get(i).asString() for i in range(response.size())]
             print(f"\033[93mParticipants are: {self.participants}\nWaiting for Speaker!\033[0m")
