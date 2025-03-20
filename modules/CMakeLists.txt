@@ -70,5 +70,5 @@ message(STATUS "PATH_TO_VENV: ${PATH_TO_VENV}")
 
 # add the modules you want to install
 add_subdirectory(meta_reasoner)
-add_subdirectory(conversation_parser)
+#add_subdirectory(spatial_memory)
 
