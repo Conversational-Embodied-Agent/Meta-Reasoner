@@ -1,0 +1,18 @@
+<application>
+    <name> IIT_00t Meta Reasoner</name>
+
+    <authors>
+        <author email="giulia.belgiovine@iit.it"> Luca Garello </author> 
+    </authors>
+
+    <!-- ======== MODULES ======== -->
+    <module>
+        <name>spatialMemory</name>
+        <parameters></parameters>
+        <node>localhost</node>
+    </module>
+    
+    <!-- ======== CONNECTIONS ======== -->
+
+
+</application>

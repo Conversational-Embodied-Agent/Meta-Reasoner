@@ -22,12 +22,13 @@ class MetaReasoner(yarp.RFModule):
         """ This module is a llm-powered reasoner to assess addressee identity and conversation dynamics."""
         super(MetaReasoner, self).__init__()
         self.log_folder = "/usr/local/src/robot/Codes/Meta-Reasoner/conversations_log"
+        self.DEBUG_MODE = True
         self.llm_chain = None
         self.utterance_end = False
         self.record_history = []
         self.interaction_end = False
         self.history_dataframe = pd.DataFrame(columns=["Timestamp", "Speaker", "Utterance", "Addressee"])
-        self.participants = ['Giulia', 'Luca', "Eizaburo", 'Robot']
+        self.participants = ['Giulia', 'Luca', 'Robot']
 
         # handle port for the RFModule
         self.handle_port = yarp.Port()
@@ -266,7 +267,9 @@ class MetaReasoner(yarp.RFModule):
     def updateModule(self):
         
         # 1: read number of participants, speaker ID and utterance
-        self.get_conversation_participants()  
+        if self.DEBUG_MODE == False:
+            self.get_conversation_participants()  
+            
         utterance, speaker_id = self.get_utterance_and_speaker_id()
 
         # 2: parse the conversation information to give to the LLM
